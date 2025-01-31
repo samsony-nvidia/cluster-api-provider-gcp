@@ -178,6 +178,14 @@ func (s *Service) Reconcile(ctx context.Context) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
+// getSubnetName returns the subnet name from the spec if set, otherwise it falls back to the subnet in the same region as the cluster.
+func (s *Service) getSubnetName() string {
+	if s.scope.GCPManagedCluster.Spec.Subnetwork.Name != "" {
+		return s.scope.GCPManagedCluster.Spec.Subnetwork.Name
+	}
+	return s.getSubnetNameInClusterRegion()
+}
+
 // Delete delete GKE cluster.
 func (s *Service) Delete(ctx context.Context) (ctrl.Result, error) {
 	log := log.FromContext(ctx).WithValues("service", "container.clusters")
@@ -255,7 +263,7 @@ func (s *Service) createCluster(ctx context.Context, log *logr.Logger) error {
 		Name:        s.scope.ClusterName(),
 		Description: s.scope.GCPManagedControlPlane.Spec.Description,
 		Network:     *s.scope.GCPManagedCluster.Spec.Network.Name,
-		Subnetwork:  s.getSubnetNameInClusterRegion(),
+		Subnetwork:  s.getSubnetName(),
 		Autopilot: &containerpb.Autopilot{
 			Enabled: s.scope.GCPManagedControlPlane.Spec.EnableAutopilot,
 		},
